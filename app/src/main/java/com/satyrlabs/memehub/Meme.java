@@ -25,13 +25,18 @@ public class Meme {
     @Expose
     private String username;
 
+    @SerializedName("pushIdd")
+    @Expose
+    private String pushIdd;
+
     public Meme(){}
 
-    public Meme(String title, String imageUrl, int points, String username){
+    public Meme(String title, String imageUrl, int points, String username, String pushIdd){
         this.title = title;
         this.imageUrl = imageUrl;
         this.points = points;
         this.username = username;
+        this.pushIdd = pushIdd;
     }
 
     public String getTitle() {
@@ -66,4 +71,11 @@ public class Meme {
         this.username = username;
     }
 
+    public String getPushIdd() {
+        return pushIdd;
+    }
+
+    public void setPushIdd(String pushIdd) {
+        this.pushIdd = pushIdd;
+    }
 }

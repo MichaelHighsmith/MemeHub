@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -156,8 +157,10 @@ public class MainActivity extends AppCompatActivity {
                     (this, new OnSuccessListener<UploadTask.TaskSnapshot>(){
                         public void onSuccess(UploadTask.TaskSnapshot taskSnapshot){
                             Uri downloadUrl = taskSnapshot.getDownloadUrl();
-                            Meme meme = new Meme("title", downloadUrl.toString(), 1, mUsername);
-                            mMessagesDatabaseReference.push().setValue(meme);
+                            String pushIdd = mMessagesDatabaseReference.push().getKey();
+                            Meme meme = new Meme("title", downloadUrl.toString(), 1, mUsername, pushIdd);
+                            Log.v("My pushId is", mMessagesDatabaseReference.push().getKey());
+                            mMessagesDatabaseReference.child(pushIdd).setValue(meme);
                         }
                     });
 
@@ -209,6 +212,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                     Meme meme = dataSnapshot.getValue(Meme.class);
+                    Log.v("meme is", meme.toString());
                     mSwipeView.addView(new MemeCard(mContext, meme, mSwipeView));
                 }
                 @Override
