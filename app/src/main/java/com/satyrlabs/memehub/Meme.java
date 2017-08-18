@@ -25,6 +25,15 @@ public class Meme {
     @Expose
     private String username;
 
+    public Meme(){}
+
+    public Meme(String title, String imageUrl, int points, String username){
+        this.title = title;
+        this.imageUrl = imageUrl;
+        this.points = points;
+        this.username = username;
+    }
+
     public String getTitle() {
         return title;
     }
