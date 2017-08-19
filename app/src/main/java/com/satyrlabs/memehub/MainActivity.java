@@ -40,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
     private Context mContext;
 
     private String mUsername;
+    private String mEmail;
+    private String mId;
 
     private ImageButton mPhotoPickerButton;
 
@@ -52,10 +54,13 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseAuth mFirebaseAuth;
     private FirebaseAuth.AuthStateListener mAuthStateListener;
 
+    int totalViewCount = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        totalViewCount = 0;
 
         mUsername = "anonymous";
 
@@ -66,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
         mFirebaseStorage = FirebaseStorage.getInstance();
         mFirebaseAuth = FirebaseAuth.getInstance();
 
-        mMessagesDatabaseReference = mFirebaseDatabase.getReference().child("messages");
+        mMessagesDatabaseReference = mFirebaseDatabase.getReference();
         mChatPhotosStorageReference = mFirebaseStorage.getReference().child("chat_photos");
 
 
@@ -102,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
                 FirebaseUser user = firebaseAuth.getCurrentUser();
                 if(user != null){
                     //user is signed in
-                    onSignedInInitialize(user.getDisplayName());
+                    onSignedInInitialize(user.getDisplayName(), user.getEmail(), user.getUid());
                     Toast.makeText(MainActivity.this, "Welcome to MemeHub!  Swipe left or right to start refining your meme feed", Toast.LENGTH_LONG).show();
                 } else {
                     //user is signed out
@@ -157,10 +162,10 @@ public class MainActivity extends AppCompatActivity {
                     (this, new OnSuccessListener<UploadTask.TaskSnapshot>(){
                         public void onSuccess(UploadTask.TaskSnapshot taskSnapshot){
                             Uri downloadUrl = taskSnapshot.getDownloadUrl();
-                            String pushIdd = mMessagesDatabaseReference.push().getKey();
+                            String pushIdd = mMessagesDatabaseReference.child("messages").push().getKey();
                             Meme meme = new Meme("title", downloadUrl.toString(), 1, mUsername, pushIdd);
-                            Log.v("My pushId is", mMessagesDatabaseReference.push().getKey());
-                            mMessagesDatabaseReference.child(pushIdd).setValue(meme);
+                            Log.v("My pushId is", mMessagesDatabaseReference.child("messages").push().getKey());
+                            mMessagesDatabaseReference.child("messages").child(pushIdd).setValue(meme);
                         }
                     });
 
@@ -189,13 +194,21 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume(){
         super.onResume();
+        totalViewCount = 0;
         //Add the listener (checks if the user is logged in in onCreate)
         mFirebaseAuth.addAuthStateListener(mAuthStateListener);
     }
 
-    private void onSignedInInitialize(String username){
+    private void onSignedInInitialize(String username, String email, String id){
         //Set the username to be displayed with posts (see photoRef.putFile)
         mUsername = username;
+        mEmail = email;
+        mId = id;
+        //add the user's data to the "users" tree in the DB
+        mMessagesDatabaseReference.child("users").child(mId).child("username").setValue(mUsername);
+        mMessagesDatabaseReference.child("users").child(mId).child("email").setValue(mEmail);
+        mMessagesDatabaseReference.child("users").child(mId).child("id").setValue(mId);
+
         attachDatabaseReadListener();
 
     }
@@ -213,7 +226,14 @@ public class MainActivity extends AppCompatActivity {
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                     Meme meme = dataSnapshot.getValue(Meme.class);
                     Log.v("meme is", meme.toString());
-                    mSwipeView.addView(new MemeCard(mContext, meme, mSwipeView));
+                    int totalViews = mSwipeView.getChildCount();
+                    String totalMemes = String.valueOf(totalViews);
+                    Log.v("Total memes = ", totalMemes);
+                    //only add 10 memes to the swipeView
+                    if (totalViewCount < 10){
+                        mSwipeView.addView(new MemeCard(mContext, meme, mSwipeView));
+                        totalViewCount++;
+                    }
                 }
                 @Override
                 public void onChildChanged(DataSnapshot dataSnapshot, String s) {
@@ -228,14 +248,14 @@ public class MainActivity extends AppCompatActivity {
                 public void onCancelled(DatabaseError databaseError) {
                 }
             };
-            mMessagesDatabaseReference.addChildEventListener(mChildEventListener);
+            mMessagesDatabaseReference.child("messages").addChildEventListener(mChildEventListener);
         }
 
     }
 
     private void detachDatabaseReadListener(){
         if(mChildEventListener != null){
-            mMessagesDatabaseReference.removeEventListener(mChildEventListener);
+            mMessagesDatabaseReference.child("messages").removeEventListener(mChildEventListener);
             mChildEventListener = null;
         }
     }
