@@ -126,18 +126,18 @@ public class MemeCard {
         mMessagesDatabaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                //Add the current meme's Id to the list of memes that the user has already seen (this way we can avoid it from showing up again in their future feed)
+                //Add the current user Id to the list of usersHaveViewed that the meme has already been viewed by (this way we can avoid it from showing up again in their future feed)
                 try{
                     //TODO about 1/10 times the app crashes here with null refernece to a child path.  I can't figure out why this is, but try-catch skips the event for now
                     GenericTypeIndicator<HashMap<String, String>> g = new GenericTypeIndicator<HashMap<String, String>>(){};
-                    HashMap<String, String> memeList = dataSnapshot.child("users").child(userId).child("memesViewed").getValue(g);
+                    HashMap<String, String> memeList = dataSnapshot.child("messages").child(memeId).child("usersHaveViewed").getValue(g);
                     if(memeList != null){
-                        memeList.put(memeId, memeId);
-                        mMessagesDatabaseReference.child("users").child(userId).child("memesViewed").setValue(memeList);
+                        memeList.put(userId, userId);
+                        mMessagesDatabaseReference.child("messages").child(memeId).child("usersHaveViewed").setValue(memeList);
                     } else {
                         HashMap<String, String> dummyMap = new HashMap<String, String>();
                         dummyMap.put("dummyData", "dummyData");
-                        mMessagesDatabaseReference.child("users").child(userId).child("memesViewed").setValue(dummyMap);
+                        mMessagesDatabaseReference.child("messages").child(memeId).child("usersHaveViewed").setValue(dummyMap);
                     }
                 } catch (Exception e){
                     Log.v("Saving the meme failed", "Idk why");

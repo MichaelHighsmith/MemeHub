@@ -54,6 +54,8 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseAuth mFirebaseAuth;
     private FirebaseAuth.AuthStateListener mAuthStateListener;
 
+    private DatabaseReference mUsersDatabaseReference;
+
     int totalViewCount = 0;
 
     @Override
@@ -72,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
         mFirebaseAuth = FirebaseAuth.getInstance();
 
         mMessagesDatabaseReference = mFirebaseDatabase.getReference();
+        mUsersDatabaseReference = mFirebaseDatabase.getReference();
         mChatPhotosStorageReference = mFirebaseStorage.getReference().child("chat_photos");
 
 
@@ -225,14 +228,17 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                     Meme meme = dataSnapshot.getValue(Meme.class);
-                    Log.v("meme is", meme.toString());
                     int totalViews = mSwipeView.getChildCount();
                     String totalMemes = String.valueOf(totalViews);
                     Log.v("Total memes = ", totalMemes);
                     //only add 10 memes to the swipeView
                     if (totalViewCount < 10){
-                        mSwipeView.addView(new MemeCard(mContext, meme, mSwipeView));
-                        totalViewCount++;
+                        //Check that the meme hasn't been viewed by the user before
+                        if(!dataSnapshot.child("usersHaveViewed").child(mId).exists()){
+                            mSwipeView.addView(new MemeCard(mContext, meme, mSwipeView));
+                            totalViewCount++;
+                        }
+
                     }
                 }
                 @Override
@@ -250,7 +256,6 @@ public class MainActivity extends AppCompatActivity {
             };
             mMessagesDatabaseReference.child("messages").addChildEventListener(mChildEventListener);
         }
-
     }
 
     private void detachDatabaseReadListener(){
