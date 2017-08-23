@@ -9,9 +9,6 @@ import com.google.gson.annotations.SerializedName;
 
 public class Meme {
 
-    @SerializedName("title")
-    @Expose
-    private String title;
 
     @SerializedName("imageUrl")
     @Expose
@@ -29,23 +26,20 @@ public class Meme {
     @Expose
     private String pushIdd;
 
+    @SerializedName("usernameId")
+    @Expose
+    private String usernameId;
+
     public Meme(){}
 
-    public Meme(String title, String imageUrl, int points, String username, String pushIdd){
-        this.title = title;
+    public Meme(String imageUrl, int points, String username, String pushIdd, String usernameId){
         this.imageUrl = imageUrl;
         this.points = points;
         this.username = username;
         this.pushIdd = pushIdd;
+        this.usernameId = usernameId;
     }
 
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
 
     public String getImageUrl() {
         return imageUrl;
@@ -77,5 +71,13 @@ public class Meme {
 
     public void setPushIdd(String pushIdd) {
         this.pushIdd = pushIdd;
+    }
+
+    public void setUsernameId(String usernameId) {
+        this.usernameId = usernameId;
+    }
+
+    public String getUsernameId() {
+        return usernameId;
     }
 }

@@ -23,6 +23,9 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.GenericTypeIndicator;
+import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -30,6 +33,7 @@ import com.mindorks.placeholderview.SwipeDecor;
 import com.mindorks.placeholderview.SwipePlaceHolderView;
 
 import java.util.Arrays;
+import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -48,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     //Firebase instance variables
     private FirebaseDatabase mFirebaseDatabase;
     private DatabaseReference mMessagesDatabaseReference;
+    private DatabaseReference mPointsDatabaseReference;
     private ChildEventListener mChildEventListener;
     private FirebaseStorage mFirebaseStorage;
     private StorageReference mChatPhotosStorageReference;
@@ -57,6 +62,10 @@ public class MainActivity extends AppCompatActivity {
     private DatabaseReference mUsersDatabaseReference;
 
     int totalViewCount = 0;
+
+    boolean userBanned = false;
+
+    int totalSwipes;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,7 +83,8 @@ public class MainActivity extends AppCompatActivity {
         mFirebaseAuth = FirebaseAuth.getInstance();
 
         mMessagesDatabaseReference = mFirebaseDatabase.getReference();
-        mUsersDatabaseReference = mFirebaseDatabase.getReference();
+        mUsersDatabaseReference = mFirebaseDatabase.getReference().child("users");
+
         mChatPhotosStorageReference = mFirebaseStorage.getReference().child("chat_photos");
 
 
@@ -145,9 +155,16 @@ public class MainActivity extends AppCompatActivity {
                 //Sign out
                 AuthUI.getInstance().signOut(this);
                 return true;
-            case R.id.add_image:
-                //add an image
-                //TODO implement adding image (To storage/database) (currently in the bottom photo button)
+            case R.id.view_profile:
+
+                //Store the user's data (for the intent)
+                Bundle bundle = new Bundle();
+                bundle.putString("key_username", mUsername);
+                bundle.putInt("key_swipes", totalSwipes);
+                //open the user's profile
+                Intent intent = new Intent(MainActivity.this, UserProfile.class);
+                intent.putExtras(bundle);
+                startActivity(intent);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -166,7 +183,7 @@ public class MainActivity extends AppCompatActivity {
                         public void onSuccess(UploadTask.TaskSnapshot taskSnapshot){
                             Uri downloadUrl = taskSnapshot.getDownloadUrl();
                             String pushIdd = mMessagesDatabaseReference.child("messages").push().getKey();
-                            Meme meme = new Meme("title", downloadUrl.toString(), 1, mUsername, pushIdd);
+                            Meme meme = new Meme(downloadUrl.toString(), 1, mUsername, pushIdd, mId);
                             Log.v("My pushId is", mMessagesDatabaseReference.child("messages").push().getKey());
                             mMessagesDatabaseReference.child("messages").child(pushIdd).setValue(meme);
                         }
@@ -211,7 +228,8 @@ public class MainActivity extends AppCompatActivity {
         mMessagesDatabaseReference.child("users").child(mId).child("username").setValue(mUsername);
         mMessagesDatabaseReference.child("users").child(mId).child("email").setValue(mEmail);
         mMessagesDatabaseReference.child("users").child(mId).child("id").setValue(mId);
-
+        //Retrieve data on the user's total points
+        getUsersTotalSwipes();
         attachDatabaseReadListener();
 
     }
@@ -231,15 +249,15 @@ public class MainActivity extends AppCompatActivity {
                     int totalViews = mSwipeView.getChildCount();
                     String totalMemes = String.valueOf(totalViews);
                     Log.v("Total memes = ", totalMemes);
-                    //only add 10 memes to the swipeView
-                    if (totalViewCount < 10){
+                    //only add 50 memes to the swipeView
+
                         //Check that the meme hasn't been viewed by the user before
                         if(!dataSnapshot.child("usersHaveViewed").child(mId).exists()){
-                            mSwipeView.addView(new MemeCard(mContext, meme, mSwipeView));
-                            totalViewCount++;
-                        }
+                            //Check that the meme user isn't banned
+                            checkIfBanned(meme);
 
-                    }
+                        }
+                    //Convert the snapshot (memeId) to string, in another method check the users list with it to see if things are right.  If it's ok, return a boolean that is used to add to the swipeview
                 }
                 @Override
                 public void onChildChanged(DataSnapshot dataSnapshot, String s) {
@@ -264,6 +282,65 @@ public class MainActivity extends AppCompatActivity {
             mChildEventListener = null;
         }
     }
+
+    private void checkIfBanned(final Meme meme){
+        mUsersDatabaseReference = mFirebaseDatabase.getReference().child("users").child(mId);
+        mUsersDatabaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                GenericTypeIndicator<HashMap<String, String>> abc = new GenericTypeIndicator<HashMap<String, String>>(){};
+                HashMap<String, String> listOfBannedUsers = dataSnapshot.child("bannedUsers").getValue(abc);
+                if(listOfBannedUsers == null){
+                    Log.v("I guess its null", "do nothing");
+                    mSwipeView.addView(new MemeCard(mContext, meme, mSwipeView));
+                    totalViewCount++;
+                }
+                if(listOfBannedUsers != null){
+                    //List of banned users exists
+                    if(listOfBannedUsers.containsValue(meme.getUsernameId())){
+                        Log.v("This user is banned", "B");
+                    } else {
+                        //If the poster isn't banned, and the meme hasn't been seen yet, add it to the swipe view.
+                        mSwipeView.addView(new MemeCard(mContext, meme, mSwipeView));
+                        totalViewCount++;
+                    }
+                }
+
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
+    }
+
+    //retrieve the totalswipes that the user has earned. Saved into a variable for the intent bundle
+    private void getUsersTotalSwipes(){
+        mPointsDatabaseReference = mFirebaseDatabase.getReference();
+        mPointsDatabaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                Object totalSwipesObject = dataSnapshot.child("users").child(mId).child("swipes").getValue();
+                if(totalSwipesObject == null){
+                    mPointsDatabaseReference.child("users").child(mId).child("swipes").setValue(0);
+                } else {
+                    String totalSwipesString = totalSwipesObject.toString();
+                    Log.v("Total swipes equal", totalSwipesString);
+                    totalSwipes = Integer.parseInt(totalSwipesString);
+                    mPointsDatabaseReference.child("users").child(mId).child("swipes").setValue(totalSwipes);
+                }
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+
 
 
 }

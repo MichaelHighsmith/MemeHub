@@ -1,6 +1,7 @@
 package com.satyrlabs.memehub;
 
 import android.content.Context;
+import android.content.Intent;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -61,6 +62,8 @@ public class MemeCard {
     private FirebaseUser user = mFirebaseAuth.getCurrentUser();
     final String userId = user.getUid();
 
+    private boolean swipedLeft;
+
     public MemeCard(Context context, Meme meme, SwipePlaceHolderView swipeView){
         mContext = context;
         mMeme = meme;
@@ -71,7 +74,7 @@ public class MemeCard {
     @Resolve
     private void onResolved(){
         Glide.with(mContext).load(mMeme.getImageUrl()).into(memeImageView);
-        titlePointsTxt.setText(mMeme.getTitle() + "   Points:  " + mMeme.getPoints());
+        titlePointsTxt.setText("   Points:  " + mMeme.getPoints());
         usernameTxt.setText(mMeme.getUsername());
     }
 
@@ -85,8 +88,13 @@ public class MemeCard {
         Log.v("mGroupId = ", mGroupId);
         mMessagesDatabaseReference.child("messages").child(mGroupId).child("points").setValue(currentPoints);
 
+        swipedLeft = true;
+
         //add the meme's pushId under the list of viewed id's by the user
-        logMemeAsViewed(mGroupId);
+        logMemeAsViewed(mGroupId, swipedLeft, mMeme);
+
+
+
     }
 
     @SwipeCancelState
@@ -104,8 +112,10 @@ public class MemeCard {
         Log.v("mGroupId = ", mGroupId);
         mMessagesDatabaseReference.child("messages").child(mGroupId).child("points").setValue(currentPoints);
 
+        swipedLeft = false;
+
         //add the meme's pushId under the list of viewed id's by the user
-        logMemeAsViewed(mGroupId);
+        logMemeAsViewed(mGroupId, swipedLeft, mMeme);
 
 
     }
@@ -121,7 +131,7 @@ public class MemeCard {
     }
 
 
-    private void logMemeAsViewed(final String memeId){
+    private void logMemeAsViewed(final String memeId, boolean leftSwipe, final Meme meme){
         //Create a single event listener that will add the memeId to the list of memes already viewed by the user that is logged in
         mMessagesDatabaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -135,10 +145,20 @@ public class MemeCard {
                         memeList.put(userId, userId);
                         mMessagesDatabaseReference.child("messages").child(memeId).child("usersHaveViewed").setValue(memeList);
                     } else {
-                        HashMap<String, String> dummyMap = new HashMap<String, String>();
-                        dummyMap.put("dummyData", "dummyData");
-                        mMessagesDatabaseReference.child("messages").child(memeId).child("usersHaveViewed").setValue(dummyMap);
+                        HashMap<String, String> introMap = new HashMap<String, String>();
+                        introMap.put(userId, userId);
+                        mMessagesDatabaseReference.child("messages").child(memeId).child("usersHaveViewed").setValue(introMap);
                     }
+                    //If meme is swiped left, add Tally against the poster
+                    if(swipedLeft){
+                        //ban the poster from showing up in the user's feed anymore
+                        addTallyAgainstPoster(dataSnapshot, memeId);
+                    }
+                    updateUsersTotalSwipes(dataSnapshot);
+
+                    String posterId = meme.getUsernameId();
+                    updatePostersTotalPoints(dataSnapshot, swipedLeft, posterId);
+
                 } catch (Exception e){
                     Log.v("Saving the meme failed", "Idk why");
                 }
@@ -148,5 +168,47 @@ public class MemeCard {
             }
         });
     }
+
+    private void addTallyAgainstPoster(DataSnapshot dataSnapshot, String memeId){
+        GenericTypeIndicator<HashMap <String, String>> g = new GenericTypeIndicator<HashMap<String, String>>(){};
+        HashMap<String, String> bannedUsers = dataSnapshot.child("users").child(userId).child("bannedUsers").getValue(g);
+        String memePoster = mMeme.getUsernameId();
+        if(bannedUsers != null){
+            bannedUsers.put(memePoster, memePoster);
+            mMessagesDatabaseReference.child("users").child(userId).child("bannedUsers").setValue(bannedUsers);
+        } else {
+            HashMap<String, String> introMap = new HashMap<String, String>();
+            introMap.put(memePoster, memePoster);
+            mMessagesDatabaseReference.child("users").child(userId).child("bannedUsers").setValue(introMap);
+        }
+    }
+
+    private void updateUsersTotalSwipes(DataSnapshot dataSnapshot){
+        String userSwipesString = dataSnapshot.child("users").child(userId).child("swipes").getValue().toString();
+        int userSwipes = Integer.parseInt(userSwipesString);
+        userSwipes = userSwipes + 1;
+        mMessagesDatabaseReference.child("users").child(userId).child("swipes").setValue(userSwipes);
+    }
+
+    private void updatePostersTotalPoints(DataSnapshot dataSnapshot, boolean leftSwipe, String posterId){
+        Object posterPointsObject = dataSnapshot.child("users").child(posterId).child("points").getValue();
+        //if the posterpoints is null, add it to the user's data
+        if(posterPointsObject == null){
+            mMessagesDatabaseReference.child("users").child(posterId).child("points").setValue(0);
+        } else {
+            //If it's not null, + or - 1 point and store it
+            String posterPointsString = posterPointsObject.toString();
+            int posterPoints = Integer.parseInt(posterPointsString);
+            if(leftSwipe){
+                posterPoints = posterPoints - 1;
+            } else {
+                posterPoints = posterPoints + 1;
+            }
+            mMessagesDatabaseReference.child("users").child(posterId).child("points").setValue(posterPoints);
+        }
+
+    }
+
+
 
 }
