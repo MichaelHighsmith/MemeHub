@@ -1,9 +1,20 @@
 package com.satyrlabs.memehub;
 
+import android.*;
+import android.Manifest;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -11,6 +22,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
@@ -32,6 +44,9 @@ import com.google.firebase.storage.UploadTask;
 import com.mindorks.placeholderview.SwipeDecor;
 import com.mindorks.placeholderview.SwipePlaceHolderView;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -58,13 +73,10 @@ public class MainActivity extends AppCompatActivity {
     private StorageReference mChatPhotosStorageReference;
     private FirebaseAuth mFirebaseAuth;
     private FirebaseAuth.AuthStateListener mAuthStateListener;
-
     private DatabaseReference mUsersDatabaseReference;
 
     int totalViewCount = 0;
-
     boolean userBanned = false;
-
     int totalSwipes;
 
     @Override
@@ -99,19 +111,7 @@ public class MainActivity extends AppCompatActivity {
                         .setSwipeInMsgLayoutId(R.layout.meme_swipe_right_msg_view)
                         .setSwipeOutMsgLayoutId(R.layout.meme_swipe_left_msg_view));
 
-
-
-
-        mPhotoPickerButton.setOnClickListener(new View.OnClickListener(){
-            @Override
-            public void onClick(View view){
-                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                intent.setType("image/jpeg");
-                intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
-                startActivityForResult(Intent.createChooser(intent, "Complete action using"), RC_PHOTO_PICKER);
-            }
-        });
-
+        setNewPhotoButton();
 
         //Triggered when the user's auth state changes
         mAuthStateListener = new FirebaseAuth.AuthStateListener() {
@@ -121,7 +121,6 @@ public class MainActivity extends AppCompatActivity {
                 if(user != null){
                     //user is signed in
                     onSignedInInitialize(user.getDisplayName(), user.getEmail(), user.getUid());
-                    Toast.makeText(MainActivity.this, "Welcome to MemeHub!  Swipe left or right to start refining your meme feed", Toast.LENGTH_LONG).show();
                 } else {
                     //user is signed out
                     onSignedOutCleanup();
@@ -139,6 +138,25 @@ public class MainActivity extends AppCompatActivity {
             }
         };
 
+        //Introduce the user if it's their first time
+        SharedPreferences intro = getSharedPreferences("MyFirstTime", 0);
+        if(intro.getBoolean("my_first_time", true)){
+            introDialog();
+            intro.edit().putBoolean("my_first_time", false).apply();
+        }
+
+    }
+
+    private void setNewPhotoButton(){
+        mPhotoPickerButton.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view){
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("image/jpeg");
+                intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+                startActivityForResult(Intent.createChooser(intent, "Complete action using"), RC_PHOTO_PICKER);
+            }
+        });
     }
 
     @Override
@@ -231,7 +249,6 @@ public class MainActivity extends AppCompatActivity {
         //Retrieve data on the user's total points
         getUsersTotalSwipes();
         attachDatabaseReadListener();
-
     }
 
     private void onSignedOutCleanup(){
@@ -255,9 +272,7 @@ public class MainActivity extends AppCompatActivity {
                         if(!dataSnapshot.child("usersHaveViewed").child(mId).exists()){
                             //Check that the meme user isn't banned
                             checkIfBanned(meme);
-
                         }
-                    //Convert the snapshot (memeId) to string, in another method check the users list with it to see if things are right.  If it's ok, return a boolean that is used to add to the swipeview
                 }
                 @Override
                 public void onChildChanged(DataSnapshot dataSnapshot, String s) {
@@ -292,8 +307,10 @@ public class MainActivity extends AppCompatActivity {
                 HashMap<String, String> listOfBannedUsers = dataSnapshot.child("bannedUsers").getValue(abc);
                 if(listOfBannedUsers == null){
                     Log.v("I guess its null", "do nothing");
-                    mSwipeView.addView(new MemeCard(mContext, meme, mSwipeView));
-                    totalViewCount++;
+                    if(totalViewCount < 50){
+                        mSwipeView.addView(new MemeCard(mContext, meme, mSwipeView));
+                        totalViewCount++;
+                    }
                 }
                 if(listOfBannedUsers != null){
                     //List of banned users exists
@@ -301,12 +318,12 @@ public class MainActivity extends AppCompatActivity {
                         Log.v("This user is banned", "B");
                     } else {
                         //If the poster isn't banned, and the meme hasn't been seen yet, add it to the swipe view.
-                        mSwipeView.addView(new MemeCard(mContext, meme, mSwipeView));
-                        totalViewCount++;
+                        if(totalViewCount < 50){
+                            mSwipeView.addView(new MemeCard(mContext, meme, mSwipeView));
+                            totalViewCount++;
+                        }
                     }
                 }
-
-
             }
 
             @Override
@@ -330,17 +347,28 @@ public class MainActivity extends AppCompatActivity {
                     totalSwipes = Integer.parseInt(totalSwipesString);
                     mPointsDatabaseReference.child("users").child(mId).child("swipes").setValue(totalSwipes);
                 }
-
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-
             }
         });
     }
 
+    public void introDialog(){
+        final Dialog dialog = new Dialog(MainActivity.this);
+        dialog.setContentView(R.layout.intro_dialog);
+        dialog.setTitle("Welcome to MemeHub");
+        dialog.setCancelable(false);
 
-
+        final Button button = (Button) dialog.findViewById(R.id.intro_ok_button);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dialog.dismiss();
+            }
+        });
+        dialog.show();
+    }
 
 }

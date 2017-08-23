@@ -2,7 +2,16 @@ package com.satyrlabs.memehub;
 
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.media.Image;
+import android.net.Uri;
+import android.provider.MediaStore;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -38,7 +47,7 @@ import java.util.Map;
 
 @Layout(R.layout.meme_card_view)
 @NonReusable
-public class MemeCard {
+public class MemeCard extends AppCompatActivity{
 
     //Firebase instances
     private FirebaseDatabase mFirebaseDatabase = FirebaseDatabase.getInstance();
@@ -46,6 +55,8 @@ public class MemeCard {
 
     private FirebaseAuth mFirebaseAuth = FirebaseAuth.getInstance();
     private FirebaseAuth.AuthStateListener mAuthStateListener;
+
+    //private ImageButton mPhotoDownloadButton;
 
     @View(R.id.memeImageView)
     private ImageView memeImageView;
@@ -55,6 +66,9 @@ public class MemeCard {
 
     @View(R.id.usernameTxt)
     private TextView usernameTxt;
+
+    @View(R.id.photoDownloadButton)
+    private ImageView mPhotoDownloadButton;
 
     private Meme mMeme;
     private Context mContext;
@@ -73,9 +87,21 @@ public class MemeCard {
 
     @Resolve
     private void onResolved(){
-        Glide.with(mContext).load(mMeme.getImageUrl()).into(memeImageView);
+        Glide.with(mContext).load(mMeme.getImageUrl()).asBitmap().into(memeImageView);
         titlePointsTxt.setText("   Points:  " + mMeme.getPoints());
         usernameTxt.setText(mMeme.getUsername());
+
+        //download the current image when the user clicks the download button
+        mPhotoDownloadButton.setOnClickListener(new android.view.View.OnClickListener() {
+            @Override
+            public void onClick(android.view.View v) {
+                BitmapDrawable drawable = (BitmapDrawable) memeImageView.getDrawable();
+                Bitmap bitmap = drawable.getBitmap();
+                String ImagePath = MediaStore.Images.Media.insertImage(mContext.getContentResolver(), bitmap, "demo_image", "demo_image");
+                Uri URI = Uri.parse(ImagePath);
+                Toast.makeText(mContext, "Image saved", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @SwipeOut
@@ -92,9 +118,6 @@ public class MemeCard {
 
         //add the meme's pushId under the list of viewed id's by the user
         logMemeAsViewed(mGroupId, swipedLeft, mMeme);
-
-
-
     }
 
     @SwipeCancelState

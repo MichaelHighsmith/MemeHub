@@ -5,6 +5,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/listgrad">
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="We're all out of memes for now.  Try refreshing the page or adding some of your own!"
+        android:layout_gravity="center"
+        android:textStyle="bold"
+        android:textSize="16dp"
+        android:padding="40dp"/>
     <com.mindorks.placeholderview.SwipePlaceHolderView
         android:id="@+id/swipeView"
         android:layout_width="match_parent"
@@ -12,8 +20,14 @@
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_gravity="bottom|center_horizontal">
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingRight="16dp">
         <ImageButton
             android:id="@+id/photoPickerButton"
             android:layout_width="36dp"
@@ -28,6 +42,7 @@
             android:textColor="@android:color/black"
             android:layout_gravity="center_horizontal"/>
 
+    </LinearLayout>
     </LinearLayout>
 
 </FrameLayout>

@@ -21,10 +21,10 @@
             android:scaleType="fitCenter"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginBottom="25dp" />
+            android:layout_marginBottom="50dp" />
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="25dp"
+            android:layout_height="50dp"
             android:orientation="horizontal"
             android:layout_gravity="bottom"
             android:gravity="center"
@@ -35,7 +35,8 @@
                 android:textColor="@color/colorPrimaryDark"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:layout_height="wrap_content"/>
+                android:layout_height="wrap_content"
+                android:layout_weight="1"/>
             <TextView
                 android:id="@+id/usernameTxt"
                 android:layout_width="wrap_content"
@@ -43,7 +44,15 @@
                 android:textColor="@color/colorPrimaryDark"
                 android:paddingLeft="24dp"
                 android:textSize="14sp"
-                android:textStyle="normal"/>
+                android:textStyle="normal"
+                android:layout_weight="1"/>
+            <ImageView
+                android:background="@android:drawable/ic_menu_save"
+                android:clickable="true"
+                android:id="@+id/photoDownloadButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="save image" />
         </LinearLayout>
     </android.support.v7.widget.CardView>
 </FrameLayout>
