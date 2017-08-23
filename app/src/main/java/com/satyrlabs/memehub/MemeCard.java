@@ -1,5 +1,6 @@
 package com.satyrlabs.memehub;
 
+import android.*;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -8,6 +9,7 @@ import android.graphics.drawable.Drawable;
 import android.media.Image;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Button;
@@ -118,6 +120,9 @@ public class MemeCard extends AppCompatActivity{
 
         //add the meme's pushId under the list of viewed id's by the user
         logMemeAsViewed(mGroupId, swipedLeft, mMeme);
+
+
+
     }
 
     @SwipeCancelState

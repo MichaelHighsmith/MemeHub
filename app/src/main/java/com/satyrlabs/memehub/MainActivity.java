@@ -85,6 +85,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         totalViewCount = 0;
 
+        //Give permission to download photos
+        ActivityCompat.requestPermissions(MainActivity.this, new String[]{android.Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+
         mUsername = "anonymous";
 
         mPhotoPickerButton = (ImageButton) findViewById(R.id.photoPickerButton);
