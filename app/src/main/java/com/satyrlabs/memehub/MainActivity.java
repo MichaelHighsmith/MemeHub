@@ -135,6 +135,7 @@ public class MainActivity extends AppCompatActivity {
                                             Arrays.asList(
                                                     new AuthUI.IdpConfig.Builder(AuthUI.EMAIL_PROVIDER).build(),
                                                     new AuthUI.IdpConfig.Builder(AuthUI.GOOGLE_PROVIDER).build()))
+                                    .setTheme(R.style.FullscreenTheme)
                                     .build(),
                             RC_SIGN_IN);  //RC_SIGN_IN is a flag for when we return from startActivityForResult (used in onActivityResult)
                 }
@@ -213,9 +214,9 @@ public class MainActivity extends AppCompatActivity {
         } else if(requestCode == RC_SIGN_IN){
             //Allow the user to exit the app if they hit back before logging in
             if(resultCode == RESULT_OK){
-                Toast.makeText(this, "signed in!", Toast.LENGTH_SHORT).show();
+                //Signed in
             } else if(resultCode == RESULT_CANCELED){
-                Toast.makeText(this, "Sign in cancelled", Toast.LENGTH_SHORT).show();
+                //Sign in was was cancelled
                 finish();
             }
         }
@@ -269,13 +270,11 @@ public class MainActivity extends AppCompatActivity {
                     int totalViews = mSwipeView.getChildCount();
                     String totalMemes = String.valueOf(totalViews);
                     Log.v("Total memes = ", totalMemes);
-                    //only add 50 memes to the swipeView
-
-                        //Check that the meme hasn't been viewed by the user before
-                        if(!dataSnapshot.child("usersHaveViewed").child(mId).exists()){
-                            //Check that the meme user isn't banned
-                            checkIfBanned(meme);
-                        }
+                    //Check that the meme hasn't been viewed by the user before
+                    if(!dataSnapshot.child("usersHaveViewed").child(mId).exists()){
+                        //Check that the meme user isn't banned
+                        checkIfBanned(meme);
+                    }
                 }
                 @Override
                 public void onChildChanged(DataSnapshot dataSnapshot, String s) {
@@ -306,24 +305,28 @@ public class MainActivity extends AppCompatActivity {
         mUsersDatabaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                GenericTypeIndicator<HashMap<String, String>> abc = new GenericTypeIndicator<HashMap<String, String>>(){};
-                HashMap<String, String> listOfBannedUsers = dataSnapshot.child("bannedUsers").getValue(abc);
-                if(listOfBannedUsers == null){
-                    Log.v("I guess its null", "do nothing");
-                    if(totalViewCount < 50){
+                //Only load 50 memes at a time
+                if(totalViewCount < 50){
+                    String memePosterId = meme.getUsernameId();
+                    //If the user posted the meme, have it still show up
+                    if(mId.equals(memePosterId)){
                         mSwipeView.addView(new MemeCard(mContext, meme, mSwipeView));
                         totalViewCount++;
-                    }
-                }
-                if(listOfBannedUsers != null){
-                    //List of banned users exists
-                    if(listOfBannedUsers.containsValue(meme.getUsernameId())){
-                        Log.v("This user is banned", "B");
                     } else {
-                        //If the poster isn't banned, and the meme hasn't been seen yet, add it to the swipe view.
-                        if(totalViewCount < 50){
+                        Object bannedUserObject = dataSnapshot.child("bannedUsers").child(memePosterId).child("strikes").getValue();
+                        if(bannedUserObject == null){
+                            //The poster of this meme has no strikes against them, add the meme to the swipeview
+                            Log.v("I guess its null", "do nothing");
                             mSwipeView.addView(new MemeCard(mContext, meme, mSwipeView));
                             totalViewCount++;
+                        } else {
+                            //A tally exists against the poster of the meme, check if it is greater than 3.  If so, don't post the meme
+                            String bannedUserString = bannedUserObject.toString();
+                            int bannedUserTally = Integer.parseInt(bannedUserString);
+                            if(bannedUserTally < 10){
+                                mSwipeView.addView(new MemeCard(mContext, meme, mSwipeView));
+                                totalViewCount++;
+                            }
                         }
                     }
                 }

@@ -1,27 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
-    android:layout_width="300dp"
-    android:layout_height="100dp"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingLeft="25dp"
+    android:paddingRight="25dp"
+    android:paddingTop="125dp"
+    android:paddingBottom="125dp"
     android:background="@drawable/task_border">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Welcome to MemeHub!  Swipe left or right to start refining your meme feed"
-        android:gravity="center_horizontal"
+        android:text="@string/intro_welcome"
+        android:gravity="center"
         android:textSize="16sp"
         android:textColor="@android:color/black"
         android:padding="8dp"
-        />
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:id="@+id/textView" />
 
     <Button
         android:id="@+id/intro_ok_button"
         android:layout_gravity="center"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:padding="8dp"
-        android:text="Let's Get Started!"
-        />
+        android:paddingLeft="8dp"
+        android:paddingRight="8dp"
+        android:paddingBottom="8dp"
+        android:paddingTop="24dp"
+        android:text="@string/intro_button"
+        android:layout_below="@+id/textView"
+        android:background="@drawable/topgrad"
+        android:layout_centerHorizontal="true" />
 
-</LinearLayout>
+</RelativeLayout>

@@ -44,8 +44,9 @@
                 android:textColor="@color/colorPrimaryDark"
                 android:paddingLeft="24dp"
                 android:textSize="14sp"
+                android:maxLength="24"
                 android:textStyle="normal"
-                android:layout_weight="1"/>
+                android:layout_weight="1" />
             <ImageView
                 android:background="@android:drawable/ic_menu_save"
                 android:clickable="true"

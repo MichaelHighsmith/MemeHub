@@ -198,17 +198,19 @@ public class MemeCard extends AppCompatActivity{
     }
 
     private void addTallyAgainstPoster(DataSnapshot dataSnapshot, String memeId){
-        GenericTypeIndicator<HashMap <String, String>> g = new GenericTypeIndicator<HashMap<String, String>>(){};
-        HashMap<String, String> bannedUsers = dataSnapshot.child("users").child(userId).child("bannedUsers").getValue(g);
         String memePoster = mMeme.getUsernameId();
-        if(bannedUsers != null){
-            bannedUsers.put(memePoster, memePoster);
-            mMessagesDatabaseReference.child("users").child(userId).child("bannedUsers").setValue(bannedUsers);
+        Object bannedUserObject = dataSnapshot.child("users").child(userId).child("bannedUsers").child(memePoster).child("strikes").getValue();
+        if(bannedUserObject == null){
+            //The user is not currently banned, so we add them to the list
+            mMessagesDatabaseReference.child("users").child(userId).child("bannedUsers").child(memePoster).child("strikes").setValue(1);
         } else {
-            HashMap<String, String> introMap = new HashMap<String, String>();
-            introMap.put(memePoster, memePoster);
-            mMessagesDatabaseReference.child("users").child(userId).child("bannedUsers").setValue(introMap);
+            //bannedUserObject currently equals the number of strikes against this poster, increment it and add it
+            String bannedUserString = bannedUserObject.toString();
+            int bannedUserTally = Integer.parseInt(bannedUserString);
+            bannedUserTally++;
+            mMessagesDatabaseReference.child("users").child(userId).child("bannedUsers").child(memePoster).child("strikes").setValue(bannedUserTally);
         }
+
     }
 
     private void updateUsersTotalSwipes(DataSnapshot dataSnapshot){

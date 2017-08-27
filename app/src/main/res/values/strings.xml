@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">MemeHub</string>
+    <string name="intro_welcome">Welcome to MemeHub!  Swipe left or right to start personalizing the types of pictures you see</string>
+    <string name="intro_button">Lets Get Started!</string>
 </resources>

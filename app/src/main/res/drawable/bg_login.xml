@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:drawable="@mipmap/intro_image"/>
+
+    <item android:top="-20dp">
+        <bitmap
+            android:src="@mipmap/memehub_title"
+            android:gravity="top|center_horizontal" />
+    </item>
+
+</layer-list>
